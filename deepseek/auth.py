@@ -38,6 +38,17 @@ CHAT_URL = "https://chat.deepseek.com/"
 SIGNIN_URL = "https://chat.deepseek.com/sign_in"
 
 LAUNCH_ARGS = ["--disable-blink-features=AutomationControlled"]
+
+# DeepSeek sits behind an AWS WAF that rejects Playwright's default headless
+# User-Agent (it advertises "HeadlessChrome") with a CloudFront 403. That would
+# silently break the automatic headless token refresh, so every launch presents a
+# normal desktop Chrome UA instead. Override with DEEPSEEK_USER_AGENT when
+# DeepSeek's Chrome major version moves on.
+USER_AGENT = os.getenv(
+    "DEEPSEEK_USER_AGENT",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/158.0.0.0 Safari/537.36",
+)
 # Token is trusted for this long before we refresh it from the browser again.
 SESSION_MAX_AGE = 6 * 60 * 60  # 6 hours
 
@@ -172,10 +183,12 @@ def login(
         try:
             context = p.chromium.launch_persistent_context(
                 str(profile_dir), headless=headless, channel="chrome", args=LAUNCH_ARGS,
+                user_agent=USER_AGENT,
             )
         except Exception:
             context = p.chromium.launch_persistent_context(
                 str(profile_dir), headless=headless, args=LAUNCH_ARGS,
+                user_agent=USER_AGENT,
             )
         page = context.pages[0] if context.pages else context.new_page()
 
@@ -212,10 +225,12 @@ def _headless_refresh(profile_dir: Path) -> Optional[Session]:
         try:
             context = p.chromium.launch_persistent_context(
                 str(profile_dir), headless=True, channel="chrome", args=LAUNCH_ARGS,
+                user_agent=USER_AGENT,
             )
         except Exception:
             context = p.chromium.launch_persistent_context(
                 str(profile_dir), headless=True, args=LAUNCH_ARGS,
+                user_agent=USER_AGENT,
             )
         page = context.pages[0] if context.pages else context.new_page()
         try:
