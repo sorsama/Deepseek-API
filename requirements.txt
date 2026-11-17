@@ -7,5 +7,8 @@ pydantic>=2.7           # request/response models
 python-dotenv>=1.0      # load credentials from .env
 wasmtime>=21.0          # runs DeepSeek's PoW WASM module (deepseek/pow.py)
 
+# --- Observability ---
+sentry-sdk>=2.0         # error reporting to GlitchTip when SENTRY_DSN is set
+
 # --- Examples only ---
 openai>=1.0             # used by examples/06_server_openai_sdk.py

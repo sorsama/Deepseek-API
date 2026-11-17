@@ -39,6 +39,7 @@ from .config import (
     is_known_model,
     resolve_model_type,
 )
+from .observability import capture_exception, init_sentry
 from .openai_format import (
     completion_response,
     messages_to_prompt,
@@ -47,6 +48,9 @@ from .openai_format import (
 )
 from .ratelimit import RateLimiter, install_rate_limit
 from .schemas import ChatCompletionRequest
+
+# Report server errors to GlitchTip when SENTRY_DSN is set (no-op otherwise).
+init_sentry()
 
 app = FastAPI(title="DeepSeek OpenAI-compatible API", version="0.1.0")
 install_rate_limit(
@@ -128,6 +132,7 @@ async def chat_completions(req: ChatCompletionRequest):
     except LoginRequired as e:
         return _error(str(e), status=503, err_type="login_required")
     except Exception as e:  # session/login failure
+        capture_exception(e)
         return _error(f"Failed to initialise DeepSeek session: {e}")
 
     if req.stream:
@@ -141,6 +146,7 @@ async def chat_completions(req: ChatCompletionRequest):
         except LoginRequired as e:
             return _error(str(e), status=503, err_type="login_required")
         except Exception as e:
+            capture_exception(e)
             return _error(f"DeepSeek request failed: {e}")
 
         def gen():
@@ -150,6 +156,7 @@ async def chat_completions(req: ChatCompletionRequest):
             try:
                 yield from stream_chunks(req.model, stream)
             except Exception as e:
+                capture_exception(e)
                 yield from stream_error(f"DeepSeek request failed: {e}")
 
         return StreamingResponse(gen(), media_type="text/event-stream")
@@ -162,6 +169,7 @@ async def chat_completions(req: ChatCompletionRequest):
     except LoginRequired as e:
         return _error(str(e), status=503, err_type="login_required")
     except Exception as e:
+        capture_exception(e)
         return _error(f"DeepSeek request failed: {e}")
 
     return completion_response(req.model, reply.text, prompt, reply.conversation_id,
